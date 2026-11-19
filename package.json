@@ -1,0 +1,9 @@
+{
+  "name": "nilam",
+  "version": "0.1.0",
+  "description": "AI land-value explorer: location score from OpenStreetMap and price estimates from known prices nearby.",
+  "type": "module",
+  "private": true,
+  "scripts": { "test": "node --test unit.test.js" },
+  "license": "MIT"
+}

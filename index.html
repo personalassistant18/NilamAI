@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#14532d">
+  <title>Nilam · AI land-value explorer</title>
+  <meta name="description" content="See what makes a plot of land valuable using live OpenStreetMap data, and estimate its price from known prices nearby.">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <div class="brand"><span class="logo" aria-hidden="true"></span>Nilam <span class="tamil">நிலம்</span></div>
+      <p class="tagline">AI land-value explorer. See what makes a plot valuable, and estimate its price from real prices nearby.</p>
+      <nav class="tabs">
+        <button class="tab active" data-tab="analyse">Analyse</button>
+        <button class="tab" data-tab="prices">Known prices <span id="comp-count" class="badge">0</span></button>
+        <button class="tab" data-tab="how">How it works</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- ======================= ANALYSE ======================= -->
+    <section id="analyse" class="panel active">
+      <div class="card">
+        <form id="search-form" class="search">
+          <input id="search-text" type="search" placeholder="Place name, or coordinates like 10.8050, 78.6856" autocomplete="off">
+          <button type="submit">Search</button>
+        </form>
+        <div id="search-results" class="results"></div>
+        <div id="mapbox" class="mapbox"></div>
+        <p class="hint">Tap the map to drop a pin on the plot (you can drag it), or <button id="btn-gps" class="link">use my location</button>. Tip: in Google Maps, press and hold a spot to drop a pin; copy its coordinates and paste them in the box above.</p>
+        <div class="controls">
+          <button id="btn-analyse" class="primary big" disabled>Analyse this plot</button>
+        </div>
+        <p id="status" class="status">Choose a plot first.</p>
+      </div>
+
+      <div id="results" hidden>
+        <div class="card">
+          <h2>Location Score</h2>
+          <div class="score-row">
+            <div id="score" class="score">–</div>
+            <div><div id="grade" class="grade"></div><div class="hint">out of 100, from the surroundings below</div></div>
+          </div>
+          <div class="meter"><div id="score-fill"></div></div>
+          <div class="controls"><button id="btn-share" class="ghost">Copy link to this plot</button></div>
+          <p id="share-note" class="hint"></p>
+          <div id="factors"></div>
+          <p class="hint" id="data-note"></p>
+        </div>
+
+        <div class="card">
+          <h2>Price estimate</h2>
+          <div class="size-row">
+            <label for="plot-size">Plot size</label>
+            <input id="plot-size" type="number" inputmode="decimal" min="1" value="1200">
+            <select id="plot-unit"></select>
+          </div>
+          <div id="estimate"></div>
+        </div>
+
+        <div class="card">
+          <h2>Know the price of this plot?</h2>
+          <p class="hint">Add it as a known price. Every known price makes estimates for other plots better.</p>
+          <form id="comp-form" class="comp-form">
+            <div class="row">
+              <input id="comp-price" type="number" inputmode="decimal" min="1" placeholder="Price, e.g. 2400" required>
+              <select id="comp-unit">
+                <option value="sqft">₹ per sq ft</option>
+                <option value="cent">₹ per cent</option>
+                <option value="ground">₹ per ground</option>
+                <option value="acre">₹ per acre</option>
+                <option value="sqm">₹ per sq m</option>
+              </select>
+            </div>
+            <select id="comp-source">
+              <option>Government guideline value</option>
+              <option>Registered sale price</option>
+              <option>Broker / asking price</option>
+              <option>Other</option>
+            </select>
+            <input id="comp-note" type="text" placeholder="Area name, e.g. Thillai Nagar (optional)">
+            <button type="submit" class="primary">Save known price</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= KNOWN PRICES ======================= -->
+    <section id="prices" class="panel">
+      <div class="card">
+        <h2>Known prices</h2>
+        <p class="hint">These are the only prices Nilam knows. Good sources: government guideline values (tnreginet.gov.in in Tamil Nadu), registered sale prices, or asking prices (less reliable). Add at least 6 across different areas so the AI can learn your area.</p>
+        <div id="comp-list"></div>
+        <div class="controls">
+          <button id="btn-export">Download as file</button>
+          <label class="filebtn">Load from file<input id="file-import" type="file" accept=".json,application/json"></label>
+        </div>
+        <p id="prices-note" class="hint"></p>
+      </div>
+    </section>
+
+    <!-- ======================= HOW IT WORKS ======================= -->
+    <section id="how" class="panel">
+      <div class="card">
+        <h2>How Nilam works</h2>
+        <ol class="steps">
+          <li><b>Read the surroundings.</b> For the chosen point, Nilam asks OpenStreetMap (the free world map) for every road, shop, school, hospital, bank, bus stop, railway station, town centre and construction project nearby.</li>
+          <li><b>Measure.</b> It turns that into numbers: distance to the town centre, distance to the main road, whether the plot touches a road, how many shops are within 1 km, and so on.</li>
+          <li><b>Score.</b> Each factor gets points. Together they make the Location Score out of 100.</li>
+          <li><b>Compare.</b> With known prices, it finds the most similar plots (similar surroundings, nearby) and estimates the price from them, the way a valuer uses comparable sales.</li>
+          <li><b>Learn.</b> With 6 or more known prices, it also fits a model (ridge regression) that learns how much each factor moves prices in your area. It uses whichever method has the smaller error on the known prices.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h2>Starting weights</h2>
+        <p class="hint">How many points each factor can add to the Location Score. These are assumptions based on common real-estate practice. They are not learned from prices.</p>
+        <div id="weights"></div>
+      </div>
+      <div class="card">
+        <h2>What the AI learned from your known prices</h2>
+        <div id="learned"></div>
+      </div>
+      <div class="card">
+        <h2>Limitations</h2>
+        <ul class="list">
+          <li><b>Map gaps.</b> OpenStreetMap is made by volunteers. In smaller towns many shops and services are not mapped yet, which lowers their score.</li>
+          <li><b>No built-in prices.</b> Estimates come only from the known prices you add, and are only as good as those prices.</li>
+          <li><b>Things it can't see:</b> legal status (patta, approvals), plot shape, flood risk, soil, water availability and future announcements.</li>
+          <li><b>Not a valuation report.</b> It's a learning prototype, not a certified valuation.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <p>Nilam, built by Danush as an independent learning project. Map data © OpenStreetMap contributors. Place search by Nominatim. <a id="repo-link" href="https://github.com">Source code</a></p>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
