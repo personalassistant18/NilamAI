@@ -1,9 +1,7 @@
 # Nilam (நிலம்): AI land-value explorer
-
 **Live demo:** https://YOUR-USERNAME.github.io/nilam/. It works on a phone or a laptop.
 **Status:** working prototype. Checked with automated tests and a made-up test town. **Not yet tested with real
 prices** (results will be added here).
-
 Nilam helps answer a question every land buyer in India asks: *is this plot well located, and what is it really
 worth?* Drop a pin on a plot (or paste its coordinates or a Google Maps link) and Nilam:
 
